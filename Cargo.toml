@@ -12,4 +12,10 @@ panic = "abort"     # disable stack unwinding on panic
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bootloader = "0.9.8"
+bootloader = "0.9.8"    # higher version might have compilation error
+volatile = "0.2.6"
+spin = "0.5.2"          # spinning mutex, which is not depend on host system
+
+[dependencies.lazy_static]
+version = "1.0"
+features = ["spin_no_std"]  # do not link the standard lib
