@@ -9,6 +9,7 @@ mod vga_buffer;
 mod serial;
 
 use core::panic::PanicInfo;
+use core::arch::asm;
 
 static HELLO: &[u8] = b"Hello World!";
 
@@ -42,14 +43,54 @@ fn test_runner(tests: &[&dyn Testable]) {
     // therefore, we need to define our own success exit code in cargo.toml
 }
 
+
 #[test_case]
 fn trivial_assertion() {
     assert_eq!(1, 1);
 }
 
 #[test_case]
-fn trivial_assertion() {
-    assert_eq!(1, 1);
+fn cpuid_test() {
+    let mut eax: u64;
+    let mut edx: u64;
+    serial_print!("\x1b[34m");
+    unsafe {
+        asm!(
+            "cpuid",
+            inout("eax") 0 as u64 => eax // eax同时作为输入和输出，初始化为0，再把eax结果保存到rust的eax
+        )
+    }
+    serial_println!("\n[cpuid] maximum basic function: {:#X}", eax);
+    unsafe {
+        asm!(
+        "cpuid",
+        inout("eax") 0x80000000 as u64 => eax
+        )
+    }
+    // 应该是 0x8000000A
+    serial_println!("[cpuid] maximum extended function: {:#X}", eax);
+    unsafe {
+        asm!(
+        "cpuid",
+        inout("eax") 1 as u64 => eax
+        )
+    }
+    serial_println!("[cpuid] family, model, stepping: {:#X}", eax);
+
+    // 测试long mode
+    unsafe {
+        asm!(
+        "cpuid",
+        in("eax") 0x80000001 as u64,
+        out("edx") edx
+        )
+    }
+    if 0x20000000 & edx == 0x20000000 {
+        serial_println!("[cpuid] long mode supported");
+    } else {
+        serial_println!("[cpuid] long mode not supported!, {:#X}", edx)
+    }
+    serial_print!("\x1b[0m");
 }
 
 #[cfg(test)]
